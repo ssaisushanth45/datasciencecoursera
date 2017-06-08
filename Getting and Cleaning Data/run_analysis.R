@@ -104,5 +104,5 @@ summarize_all(mean)
 
 #12 Writing new summarized data set back to the wd
 
-write.table(summarydata, "./submission_data.txt", row.names = FALSE)
+write.table(summarydata, "./submission_data.txt", row.name = FALSE)
 
