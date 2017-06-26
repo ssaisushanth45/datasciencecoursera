@@ -1,0 +1,315 @@
+---
+title: "Analysis of US NOAA Storm Data to Study Most Harmful Events Affecting Population Health and Economy"
+author: "Sai S Sampathkumar (github: ssaisushanth45)"
+date: "23 June 2017"
+output:
+        html_document:
+                keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage. 
+
+
+### *Objective*
+
+The objective of this project is to better understand which types of severe weather events, across the US, are the most harmful to population health and have greatest economic consequences.
+
+### *Data *
+
+The data for this project can be downloaded from <https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2>. For more information on the data and how variables are defined, please visit:
+
+- National Weather Service Storm Data Documentation <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf>
+- National Climatic Data Center Storm Events FAQ <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf>
+
+### *Data Challenges*
+
+- Legacy Mapping of Event Types
+- Damage Figures in Multiple Columns (figure + exp)
+
+## Data Processing
+
+We first download the data and read it into R software for processing and anlysis. 
+
+```{r, echo=TRUE, cache=TRUE}
+setwd("C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/5. Reproducible Research/2. Data/")
+stormdata <- read.csv("./repdata%2Fdata%2FStormData.csv.bz2")
+dim(stormdata)
+
+```
+
+Data has 902297 observtaions and 37 variables of events from April 1950 - November 2011. Please note, according to NWS and based on how the data is collated from verified and unverified sources, users of this data need to exercise caution as NWS DOES NOT guarantee the accuracy or validity of the information.  
+
+### *Preliminary Exploration*
+
+```{r, echo=TRUE}
+# call necessary R packages
+suppressPackageStartupMessages(suppressWarnings(library(lubridate)))
+suppressPackageStartupMessages(suppressWarnings(library(dplyr)))
+suppressPackageStartupMessages(suppressWarnings(library(ggplot2)))
+suppressPackageStartupMessages(suppressWarnings(library(grid)))
+suppressPackageStartupMessages(suppressWarnings(library(gridExtra)))
+
+# adding a variable date (same as Begin Date but formatted as date not as factor); we want to see how much data was collected by year to understand anomalies in data collection 
+
+stormdata$Date <- as.Date(stormdata$BGN_DATE, "%m/%d/%Y")
+stormdata$Year <- year(stormdata$Date)
+
+# Count number of events by year, descending sort and calculate % contribution of each year of Total number of events in the data set
+
+countev <- stormdata %>%
+                group_by(Year) %>%
+                summarize(count = n())%>%
+                        mutate(prop = count/sum(count))
+
+countev$cummprop<- countev$prop
+for (i in 2:length(countev$Year))
+countev$cummprop[i] <- countev$cummprop[i-1] + countev$prop[i]
+
+# Based on number of events by year, look at % Year Over Year Jump to detect any anomalies in data.
+
+countev$yoyjump <- 0
+for (i in 2:length(countev$Year))
+countev$yoyjump[i] <- ((countev$count[i]/countev$count[i-1])-1)* 100
+tail(countev,20)
+
+```
+
+A table of counts of events per year in the dataset reveals an interesting pattern. The table shows just last 20 years (between 1992-2011) of data reveals 80% of data collected. That led to the discovery that from 1950 - 1955, only Tornadoes were recorded. From 1955 -1992, only Tornadoes, Thunderstorm Wind, Hail events were published and digitized. From 1992-1995, only Tornadoes, Thunderstorm Wind, Hail events were extracted. From 1996, all 48 event types have been recorded. see link for more information: <https://www.ncdc.noaa.gov/stormevents/details.jsp?type=eventtype>
+
+
+Based on the data documentation, Fatalities and Injuries (Direct, Indirect and Delayed) are shown in separate columns. We will first process the data for preparing the input for a panel plot by Fatalities and Injuries across event Types. 
+
+### *DC 1 - Legacy Mapping of Event Types*
+Creating a summary table (FAT_INJ_EVTYPE) of sum of fatalities and injuries by event type shows that there are 985 levels of event type. However, this needs to reflect only 48 official event name types as shown in the documentation links above. So, we need to figure out some way of reducing the number of historical events into the official ones post 1996. 
+
+```{r, echo=TRUE}
+Fat_Inj_Evtype <- stormdata %>%
+                        group_by(EVTYPE)%>%
+                        summarize(Fsum = sum(FATALITIES),Isum = sum(INJURIES))%>%
+                        arrange(desc(Fsum),desc(Isum))
+
+names(Fat_Inj_Evtype)
+dim(Fat_Inj_Evtype)
+
+```
+
+
+First, to keep manual mapping to a minimum, we re-create the summary table FAT_INJ_EVTYPE which shows only 220 event types of 985 have atleast 1 injury or fatality. We then create and read a commma separated text table containing 48 event names from section 2.1.1 of current NWS directive - NWS 10 - 1605 (link given above).
+
+```{r, echo=TRUE}
+Fat_Inj_Evtype <- stormdata %>%
+                        group_by(EVTYPE)%>%
+                        summarize(Fsum = sum(FATALITIES),Isum = sum(INJURIES))%>%
+                        arrange(desc(Fsum),desc(Isum)) %>%
+                        filter(Fsum >0 | Isum > 0)
+dim(Fat_Inj_Evtype)
+
+
+```
+
+From the 220 event types, we notice that manually mapping top 70 event types (some already in correct mapping) covers about 94% of the Fatalities & 98% of Injuries data and ensures we obtain top 30 events causing Most Fatalities and top 30 events causing Most Injuries.
+
+```{r, echo=TRUE, cache=TRUE}
+setwd("C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/5. Reproducible Research/2. Data/")
+
+# Manual Mapping of 70/220 event types capture 94% of total Fatalities and 98% of Total Injuries - which is pretty encompassing for minimal manual effort.
+write.csv(Fat_Inj_Evtype,"./Fat_Inj_Evtype.csv")
+
+Evtype_MapP <- read.csv("./event_mapping_prop.csv", header = TRUE)
+dim(Evtype_MapP)
+# Evtype_MapP table shows the mapping
+head(Evtype_MapP,70)
+
+# Merge summary table to official event types
+
+Fat_Inj_Evtype <- merge(Fat_Inj_Evtype, Evtype_MapP, by = "EVTYPE")
+dim(Fat_Inj_Evtype)
+
+# Create Top 30 Most Harmful Events to Population Health Summary 
+
+Fat_Inj_Evtype <- Fat_Inj_Evtype %>%
+                        group_by(Off_Map)%>%
+                        summarize(Fsum = sum(Fsum),Isum = sum(Isum))%>%
+                        select(Off_Map,Fsum,Isum)
+dim(Fat_Inj_Evtype)
+
+```
+
+
+### *DC 2 - Damage Figures in Multiple Columns*
+Before creating a summary table (PRP_CROP_EVTYPE) of sum of property and crop damage by event type, we need to address the issue of multiplying the damage figures by the appropriate denomination (exp). There are two variable "PROPDMGEXP" and "CROPDMGEXP" that need to be first cleaned up and then multiplied with "PROPDMG" and "CROPDMG" figures. 
+
+There are 19 unique levels for PROPDMGEXP and 9 levels for CROPDMGEXP. Section 2.7 of the PD01016005 directive shows only 3 valid levels for EXP variables. K for thousand, M for million and B for billion. To get some clues on what these other mysterious character were, I took a look at characters by year (temp,temc) they were keyed in to find that all mysterious characters (other than K,M,B or k,m,b) for EXP variables show up during 1993-1995 period - this was when data were extracted from unformatted text files. Without clear documentation on what these characters mean, it would be unwise to use them for our analysis.
+```{r, echo=TRUE}
+
+unique(stormdata$PROPDMGEXP)
+unique(stormdata$CROPDMGEXP)
+
+# Temporary tables for further investigation of characters
+temp <- stormdata %>% 
+ group_by(Year, PROPDMGEXP) %>%
+ summarize(Psum = sum(PROPDMG))
+temc <- stormdata %>% 
+ group_by(Year, CROPDMGEXP) %>%
+ summarize(Psum = sum(CROPDMG))
+
+# adding 4 variables to handle the damage assessment calculations
+stormdata$pmultiplier <- 0
+stormdata$cmultiplier <- 0
+stormdata$totalprop <- 0
+stormdata$totalcrop <- 0
+
+# vectorization to speed up computation
+kKP <- which(stormdata$PROPDMGEXP %in% c("k","K"))
+mMP <- which(stormdata$PROPDMGEXP %in% c("m","M"))
+bBP <- which(stormdata$PROPDMGEXP %in% c("b","B"))
+
+# setting pmultiplier (property) to 1000 for K, 1000000 for M, 1000000000 for B
+stormdata$pmultiplier[kKP] <- 1000
+stormdata$pmultiplier[mMP] <- 1000000 
+stormdata$pmultiplier[bBP] <- 1000000000
+
+stormdata$totalprop <- stormdata$pmultiplier * stormdata$PROPDMG
+
+# setting cmultiplier (crop) to 1000 for K, 1000000 for M, 1000000000 for B
+
+kKC <- which(stormdata$CROPDMGEXP %in% c("k","K"))
+mMC <- which(stormdata$CROPDMGEXP %in% c("m","M"))
+bBC <- which(stormdata$CROPDMGEXP %in% c("b","B"))
+
+stormdata$cmultiplier[kKC] <- 1000
+stormdata$cmultiplier[mMC] <- 1000000 
+stormdata$cmultiplier[bBC] <- 1000000000
+
+stormdata$totalcrop <- stormdata$cmultiplier * stormdata$CROPDMG
+        
+```
+
+We have cleaned up the property and crop damage figures into actual $ figures. We now have to redo a similar clean up for event types coding as we did before to create a summary table of Prop_Crop_Evtype. We come back to our 985 event types. We reduce this to 426 event types with either property or crop damage > 0.
+
+```{r, echo=TRUE}
+Prop_Crop_Evtype <- stormdata %>%
+                        group_by(EVTYPE) %>%
+                        summarize(Psum = sum(totalprop), Csum = sum(totalcrop)) %>%
+                        arrange(desc(Psum),desc(Csum)) 
+dim(Prop_Crop_Evtype)
+
+Prop_Crop_Evtype <- stormdata %>%
+                        group_by(EVTYPE)%>%
+                        summarize(Psum = sum(totalprop),Csum = sum(totalcrop))%>%
+                        arrange(desc(Psum),desc(Csum)) %>%
+                        filter(Psum > 0 | Csum > 0)
+dim(Prop_Crop_Evtype)
+
+```
+
+From the 426 event types, we notice that manually mapping top 113 event types (some already in correct mapping) ensures we obtain top 30 events causing Most Economic Damage
+
+```{r, echo=TRUE, cache=TRUE}
+setwd("C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/5. Reproducible Research/2. Data/")
+
+write.csv(Prop_Crop_Evtype,"./Prop_Crop_Evtype.csv")
+# Manual Mapping of 113/426 event types
+
+Evtype_MapC <- read.csv("./event_mapping_crop.csv", header = TRUE)
+dim(Evtype_MapC)
+# Evtype_Map table shows the mapping
+head(Evtype_MapC,113)
+
+# Merge summary table to official event types
+
+Prop_Crop_Evtype <- merge(Prop_Crop_Evtype, Evtype_MapC, by = "EVTYPE")
+dim(Prop_Crop_Evtype)
+
+# Create Top 34 Most Harmful Events to Population Health Summary 
+
+Prop_Crop_Evtype <- Prop_Crop_Evtype %>%
+                        group_by(Off_Map)%>%
+                        summarize(Psum = sum(Psum),Csum = sum(Csum))%>%
+                        select(Off_Map,Psum,Csum)
+Prop_Crop_Evtype$Psum <- Prop_Crop_Evtype$Psum / (10^6)
+Prop_Crop_Evtype$Csum <- Prop_Crop_Evtype$Csum / (10^6)
+
+# 34 event types in order to cover Top 30 for Property and Top 30 for Crop data 
+dim(Prop_Crop_Evtype)
+
+```
+
+
+
+## Results
+
+A simple line plot of proportion of events by year shows the jump in data collection right around the time after the "Storm of the Century / The Blizzard" (March 1993). Events like Hurricane Andrew and The Blizzard might have been the triggers to bring about the revamp in the NOAA database (from 1992-1996).
+
+```{r, echo=TRUE}
+
+g <- ggplot(countev, aes(x = Year, y = prop))
+g + geom_line() +
+        xlab("Year") + ylab("%Proportion of Total Events") +
+        ggtitle("% Number of Events by Year in NOAA Storm Database") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+        annotate("text", x=1993, y=0.022, label= "The Blizzard - March 1993")
+
+```
+
+
+The following shows two main plots:
+
+- First plot shows Top 30 Most Harmful Events - Population Health (Fatalities & Injuries)
+- Second plot hows an exploratory analysis  of most harmful events in terms of economic damage (Property + Crops)
+
+```{r, echo=TRUE}
+g1 <- ggplot(Fat_Inj_Evtype, aes(reorder(Off_Map,-Fsum), Fsum)) +
+        geom_bar(stat = "identity", fill = "black") + 
+        ylab("# Fatalities") + xlab("") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+        
+
+g2 <- ggplot(Fat_Inj_Evtype, aes(reorder(Off_Map,-Isum), Isum)) +
+        geom_bar(stat = "identity", fill = "orange") + 
+        ylab("# Injuries") + xlab("") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+grid.arrange(g1, g2, ncol=2, top = ("Top 30 Most Harmful Events - Population Health"), bottom = ("Event Type")) 
+
+g3 <- ggplot(Prop_Crop_Evtype, aes(reorder(Off_Map,-Psum), Psum)) +
+        geom_bar(stat = "identity", fill = "brown") + 
+        ylab("# Property Damage (in Mill)") + xlab("") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+        
+
+g4 <- ggplot(Prop_Crop_Evtype, aes(reorder(Off_Map,-Csum), Csum)) +
+        geom_bar(stat = "identity", fill = "green") + 
+        ylab("$ Crop Damage (in Mill") + xlab("") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+grid.arrange(g3, g4, ncol=2, top = ("Top 30 Most Harmful Events - Economic Damage"), bottom = ("Event Type")) 
+
+
+```
+
+Top 5 most harmful events causing most fatalities are: 
+
+- Tornado, Excessive Heat, Flash Flood, Heat (heat wave) and Lightning
+
+Top 5 most harmful events causing most injuries are:
+
+- Tornado, Thunderstorm Wind, Excessive Heat, Flood and Lightning
+
+Top 5 most harmful events causing greatest property damage are:
+
+- Flood, Hurricane, Tornado, Storm Surge/Tide, and Flash Flood 
+
+Top 5 most harmful events causing greatest crop damage are:
+
+- Drought, Flood, Hurricane, Ice Storm and Hail
+
+Hope this helps!! Thank you for your time and effort looking through this report. Good luck!
+
+Sai S Sampatkumar June 2017
