@@ -126,17 +126,20 @@ rm("nfldata_plot")
 
 ```
 
-Salary categories (L -0.57m, M-1.09m, H-4.32m, UH-34.42m)
-```{r ,cache = TRUE, eval= TRUE, results='asis', fig.align='center', message=FALSE, fig.height=4.5, fig.width=7}
+
+```{r ,cache = TRUE, eval= TRUE, results='asis', fig.align='center', message=FALSE, fig.height=1.5, fig.width=4}
 
 # Dataset "Plotting_data_frame" is what we will use to generate plots
 # Plot salary densities 
 
-suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(plotly)))
 
-qplot(salarymm, data = plotting_data_frame, facets =.~league, 
-      xlab= "Salary in Millions", ylab = "# Players", 
-      main = "Salary Comparisons IPL vs. US Major Leagues", fill = Salcat, bins = 50)
+# Histogram of total_bill, divided by sex and smoker
+
+g <- ggplot(plotting_data_frame, aes(x=salarymm, fill=Salcat)) +
+    geom_histogram(position="identity", alpha=0.4)+
+    facet_grid(. ~ league)
+ggplotly(g)
 ```
 
 ## Contact Us
