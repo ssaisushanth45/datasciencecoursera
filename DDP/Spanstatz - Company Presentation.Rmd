@@ -1,0 +1,146 @@
+---
+title: "Spanstatz"
+subtitle    : Driving Sports Excellence Through Data Science
+author      : "Sai S Sampathkumar"
+logo        : SmallLogo.png
+date: "14 July 2017"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Our Vision
+
+
+**To build a sustainable data driven sports eco-system in India by leveraging sports data science to enhance the ROI for owners, athletes, fans & communities
+**
+
+## Our Values
+
+*We are TIRELESS*
+
+- Transparency
+- Integrity
+- Respect 
+- Empathy
+- Loyalty 
+- Empowerment
+- Sustainability
+- Social Impact
+
+
+## Salary Comparison of US Leagues vs. Indian Premier League 2016-17
+
+
+```{r ,cache=TRUE, eval = TRUE, results='hide'}
+# call the necessary library packages
+suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(tidyr)))
+
+# Loading MLB Data and creating MLB plot data set [source: wwww.sportrac.com]
+mlb_contract_data <- read.csv("C:/Users/ssais/Documents/1. SPANSTATZ/8. Analysis/Datasets/MLB_Player_Salaries_2016_17.csv")
+mlb_contract_data$leaguename <- rep("Major League Baseball",length = nrow(mlb_contract_data))
+for (i in seq(along = mlb_contract_data$yearfreeagent))
+  if (mlb_contract_data$yearfreeagent[i] == 0)
+    mlb_contract_data$yearfreeagent[i] <- NA
+for (i in seq(along = mlb_contract_data$age))
+  if (mlb_contract_data$age[i] == 0)
+    mlb_contract_data$age[i] <- NA
+mlb_contract_data$salarymm <- mlb_contract_data$annualavg/1000000
+mlb_contract_data$league <- rep("MLB",length = nrow(mlb_contract_data))
+mlb_contract_data$salmmnorm <- (mlb_contract_data$salarymm - median(mlb_contract_data$salarymm))/ (max(mlb_contract_data$salarymm) - min(mlb_contract_data$salarymm))
+
+print(summary(mlb_contract_data))
+mlbdata_plot <- mlb_contract_data[,c("salarymm","leaguename","salmmnorm","league")]
+
+#Loading NBA Data and creating NBA plot data set [source: wwww.sportrac.com]
+nba_contract_data <- read.csv("C:/Users/ssais/Documents/1. SPANSTATZ/8. Analysis/Datasets/NBA_Player_Salaries_2016_17.csv")
+nba_contract_data$leaguename <- rep("National Basketball Association",length = nrow(nba_contract_data))
+for (i in seq(along = nba_contract_data$yearfreeagent))
+  if (nba_contract_data$yearfreeagent[i] == 0)
+    nba_contract_data$yearfreeagent[i] <- NA
+for (i in seq(along = nba_contract_data$age))
+  if (nba_contract_data$age[i] == 0)
+    nba_contract_data$age[i] <- NA
+nba_contract_data$salarymm <- nba_contract_data$annualavg/1000000
+nba_contract_data$league <- rep("NBA",length = nrow(nba_contract_data))
+nba_contract_data$salmmnorm <- (nba_contract_data$salarymm - median(nba_contract_data$salarymm))/ (max(nba_contract_data$salarymm) - min(nba_contract_data$salarymm))
+
+print(summary(nba_contract_data))
+nbadata_plot <- nba_contract_data[,c("salarymm","leaguename","salmmnorm","league")]
+
+
+#Loading NFL Data and creating NFL plot data set [source: wwww.sportrac.com]
+
+nfl_contract_data <- read.csv("C:/Users/ssais/Documents/1. SPANSTATZ/8. Analysis/Datasets/NFL_Player_Salaries_2016_17.csv")
+nfl_contract_data$leaguename <- rep("National Football League",length = nrow(nfl_contract_data))
+for (i in seq(along = nfl_contract_data$yearfreeagent))
+  if (nfl_contract_data$yearfreeagent[i] == 0)
+    nfl_contract_data$yearfreeagent[i] <- NA
+for (i in seq(along = nfl_contract_data$age))
+  if (nfl_contract_data$age[i] == 0)
+    nfl_contract_data$age[i] <- NA
+nfl_contract_data$salarymm <- nfl_contract_data$annualavg/1000000
+nfl_contract_data$league <- rep("NFL",length = nrow(nfl_contract_data))
+nfl_contract_data$salmmnorm <- (nfl_contract_data$salarymm - median(nfl_contract_data$salarymm))/ (max(nfl_contract_data$salarymm) - min(nfl_contract_data$salarymm))
+
+print(summary(nfl_contract_data))
+nfldata_plot <- nfl_contract_data[,c("salarymm","leaguename","salmmnorm","league")]
+
+#Loading MLB Data and creating MLB plot data set [source: http://www.cricmetric.com/ipl/salary/]
+ipl_contract_data <- read.csv("C:/Users/ssais/Documents/1. SPANSTATZ/8. Analysis/Datasets/IPL_Player_Salaries_2017.csv")
+ipl_contract_data$leaguename <- rep("Indian Premier League",length = nrow(ipl_contract_data))
+
+ipl_contract_data$salarymm <- ipl_contract_data$Salary_USD/1000000
+ipl_contract_data$league <- rep("IPL",length = nrow(ipl_contract_data))
+ipl_contract_data$salmmnorm <- (ipl_contract_data$salarymm - median(ipl_contract_data$salarymm))/ (max(ipl_contract_data$salarymm) - min(ipl_contract_data$salarymm)) 
+print(summary(ipl_contract_data))
+ipldata_plot <- ipl_contract_data[,c("salarymm","leaguename","salmmnorm","league")]
+
+
+# Merging data for plot
+plotting_data_frame <-rbind(ipldata_plot,mlbdata_plot, nbadata_plot, nfldata_plot)
+cutpoints <- quantile(plotting_data_frame$salarymm, probs = c(0.25,0.50,0.75,1.0), na.rm = TRUE)
+plotting_data_frame$Salcat <- cut(plotting_data_frame$salarymm,cutpoints, labels = c("2_MED", "3_HIGH", "4_ULHI"))
+plotting_data_frame$Salcat <- as.character(plotting_data_frame$Salcat)
+x <- length(plotting_data_frame$salarymm)
+#converting NA's in Q1 to LOW
+NAS <- which(is.na(plotting_data_frame$Salcat))
+
+for (i in 1:length(NAS)){
+    if (is.na(plotting_data_frame$Salcat[NAS[i]])) 
+        { plotting_data_frame$Salcat[NAS[i]]<-"1_LOW"}}
+
+# Removing data
+rm("ipl_contract_data")
+rm("mlb_contract_data")
+rm("nba_contract_data")
+rm("nfl_contract_data")
+rm("ipldata_plot")
+rm("mlbdata_plot")
+rm("nbadata_plot")
+rm("nfldata_plot")
+
+
+```
+
+Salary categories (L -0.57m, M-1.09m, H-4.32m, UH-34.42m)
+```{r ,cache = TRUE, eval= TRUE, results='asis', fig.align='center', message=FALSE, fig.height=4.5, fig.width=7}
+
+# Dataset "Plotting_data_frame" is what we will use to generate plots
+# Plot salary densities 
+
+suppressMessages(suppressWarnings(library(ggplot2)))
+
+qplot(salarymm, data = plotting_data_frame, facets =.~league, 
+      xlab= "Salary in Millions", ylab = "# Players", 
+      main = "Salary Comparisons IPL vs. US Major Leagues", fill = Salcat, bins = 50)
+```
+
+## Contact Us
+
+We would love to hear from you:
+
+### sss@spanstatz.com
