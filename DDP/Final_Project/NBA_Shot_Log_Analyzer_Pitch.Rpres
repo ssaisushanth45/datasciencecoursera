@@ -1,0 +1,105 @@
+
+NBA Shot Log Analyzer - An R Shiny App
+========================================================
+author: Sai S Sampathkumar (github: ssaisushanth45)  
+date: 20 July 2017
+autosize: true
+css: custom.css
+transition: linear
+
+App address: <https://ssaisushanth45.shinyapps.io/NBA_Shot_Log_Analyzer/>
+
+<div class="footer" style="top: 85%; left:1%"><img src="SmallLogo.png" height="300px" width="300px" /></div>
+
+NBA Shot Log Analyzer - Data
+========================================================
+
+My choice of dataset & application was based on four things:
+
+- Simple to understand
+- Fun to play with
+- An opportunity to learn something new
+- Useful in building my portfolio for my start-up (Spanstatz)
+
+Research on publicly available data sets led me to Dan Becker's Kaggle posting:
+<https://www.kaggle.com/dansbecker/nba-shot-logs>
+
+I wanted to create an interactive R Shiny app based on this data to learn and play with something I am passionate about.
+
+As a next step, I hope to add shot chart visualization to this app and may be stretch across to handle different sports (FIFA, NHL, Cricket etc.).
+
+
+NBA Shot Log Analyzer - App - View
+========================================================
+class: center-img
+
+The app lets the user choose the player he/she may want to pick to understand better based on NBA season 2014-15
+```{r, echo=FALSE, height=400,width=800}
+src="C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/Appview.png" 
+
+suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(tidyr)))
+suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(grid)))
+suppressMessages(suppressWarnings(library(gridExtra)))
+shotlog <- read.csv("C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/shot_logs.csv")
+shotmvm <- shotlog %>%
+                  group_by(player_name, SHOT_RESULT, LOCATION) %>%
+                  summarize(countmm = n()) %>%
+                  mutate(prop = countmm/sum(countmm))%>%
+                  filter(player_name == "LEBRON JAMES")
+          shotmvm <- as.data.frame(shotmvm)
+          colnames(shotmvm) <- c("Player", "Shot_Result","Location","Shot_Count","Shot_Pct")
+          shotmvm$Location <- with(shotmvm, factor(Location, levels = rev(levels(Location))))
+         
+          
+          
+    # generate shots taken (made vs. missed)
+
+g1 <-ggplot(shotmvm, aes(x = Shot_Result, y = Shot_Pct)) + facet_grid(.~ Location) +
+                  ggtitle(paste("%Shots Made vs. Missed by LeBron \n Home vs Away Games" , sep = "")) +
+                  geom_bar(stat = "identity", fill = "orange", alpha = 0.8) +
+                  xlab("Shots Made vs. Missed") + ylab("% Shots")
+shotmvmw <- shotlog %>%
+                  group_by(player_name, SHOT_RESULT, W) %>%
+                  summarize(countmm = n()) %>%
+                  mutate(prop = countmm/sum(countmm))%>%
+                  filter(player_name == "LEBRON JAMES")
+          shotmvmw <- as.data.frame(shotmvmw)
+          colnames(shotmvmw) <- c("Player", "Shot_Result","WL","Shot_Count","Shot_Pct")
+          shotmvmw$WL <- with(shotmvmw, factor(WL, levels = rev(levels(WL))))
+          
+          
+          # generate shots taken (made vs. missed)
+          
+    g2 <-ggplot(shotmvmw, aes(x = Shot_Result, y = Shot_Pct)) + facet_grid(.~ WL) +
+                  ggtitle(paste("%Shots Made vs. Missed by LeBron \n Win vs.Loss Games", sep = "")) +
+                  geom_bar(stat = "identity", fill = "orange", alpha = 0.8) +
+                  xlab("Shots Made vs. Missed") + ylab("% Shots")
+```
+<img src="Appview.png" height="600px" />
+NBA Shot Log Analyzer - Charts - Closer View
+========================================================
+class: smaller
+
+- As a LeBron James fan who has seen him play for St.Vincents at the Gund (now, Quicken) Arena, I had to start by looking at his numbers.
+
+- App is set for 4 charts: Home vs. Away, Win vs. Loss, By Distance (as Table - just for kicks) and By defender. Only 2 shown here.
+```{r, echo=FALSE}
+    
+ grid.arrange(g1, g2, ncol=2)
+```
+
+Contact Us
+========================================================
+
+We would love to hear from you. Email us:
+
+*sss@spanstatz.com*
+
+**Acknowledgements:** 
+
+Dan B, Ed Maia, Todd Schneider, Andy Lyons, Augustin Luna, Coursera. 
+
+Thank you!! 
+
