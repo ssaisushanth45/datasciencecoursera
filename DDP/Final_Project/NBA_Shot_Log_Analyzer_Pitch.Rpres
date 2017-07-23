@@ -44,12 +44,12 @@ suppressMessages(suppressWarnings(library(grid)))
 suppressMessages(suppressWarnings(library(gridExtra)))
 shotlog <- read.csv("C:/Users/ssais/Documents/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/shot_logs.csv")
 shotmvm <- shotlog %>%
-                  group_by(player_name, SHOT_RESULT, LOCATION) %>%
+                  group_by(player_name, LOCATION, SHOT_RESULT) %>%
                   summarize(countmm = n()) %>%
                   mutate(prop = countmm/sum(countmm))%>%
                   filter(player_name == "LEBRON JAMES")
           shotmvm <- as.data.frame(shotmvm)
-          colnames(shotmvm) <- c("Player", "Shot_Result","Location","Shot_Count","Shot_Pct")
+          colnames(shotmvm) <- c("Player", "Location", "Shot_Result", "Shot_Count", "Shot_Pct")
           shotmvm$Location <- with(shotmvm, factor(Location, levels = rev(levels(Location))))
          
           
@@ -61,12 +61,12 @@ g1 <-ggplot(shotmvm, aes(x = Shot_Result, y = Shot_Pct)) + facet_grid(.~ Locatio
                   geom_bar(stat = "identity", fill = "orange", alpha = 0.8) +
                   xlab("Shots Made vs. Missed") + ylab("% Shots")
 shotmvmw <- shotlog %>%
-                  group_by(player_name, SHOT_RESULT, W) %>%
+                  group_by(player_name, W, SHOT_RESULT) %>%
                   summarize(countmm = n()) %>%
                   mutate(prop = countmm/sum(countmm))%>%
                   filter(player_name == "LEBRON JAMES")
           shotmvmw <- as.data.frame(shotmvmw)
-          colnames(shotmvmw) <- c("Player", "Shot_Result","WL","Shot_Count","Shot_Pct")
+          colnames(shotmvmw) <- c("Player", "WL", "Shot_Result", "Shot_Count", "Shot_Pct")
           shotmvmw$WL <- with(shotmvmw, factor(WL, levels = rev(levels(WL))))
           
           
@@ -84,7 +84,7 @@ class: smaller
 
 - As a LeBron James fan who has seen him play for St.Vincents at the Gund (now, Quicken) Arena, I had to start by looking at his numbers.
 
-- App is set for 4 charts: Home vs. Away, Win vs. Loss, By Distance (as Table - just for kicks) and By defender. Only 2 shown here.
+- App is set for 4 charts: Home vs. Away, Win vs. Loss, By Distance (as Table - just for kicks) and By defender. Embedded code shows only 2 here.
 ```{r, echo=FALSE}
     
  grid.arrange(g1, g2, ncol=2)
