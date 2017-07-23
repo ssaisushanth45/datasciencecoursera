@@ -42,7 +42,7 @@ class: smaller
 
 - As a LeBron James fan who has seen him play for St.Vincents at the Gund (now, Quicken) Arena, I had to start by looking at his numbers.
 
-- App is set for 4 charts: Home vs. Away, Win vs. Loss, By Distance (as Table - just for kicks) and By defender. Only 2 shown here.
+- App is set for 4 charts: Home vs. Away, Win vs. Loss, By Distance (as Table - just for kicks) and By defender. Embedded code shows only 2 here.
 ![plot of chunk unnamed-chunk-2](NBA_Shot_Log_Analyzer_Pitch-figure/unnamed-chunk-2-1.png)
 
 Contact Us
