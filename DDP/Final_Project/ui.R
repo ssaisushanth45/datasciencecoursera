@@ -2,8 +2,8 @@
 
 library(shiny)
 
-setwd("~/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/NBA Shot Log Analyzer")
-shotlog <- read.csv("~/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/NBA Shot Log Analyzer/Data/shot_logs.csv")
+#setwd("~/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/NBA Shot Log Analyzer")
+shotlog <- read.csv("data/shot_logs.csv")
 
 
 # Define UI for application that draws a histogram

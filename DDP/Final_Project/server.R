@@ -5,7 +5,7 @@ library(dplyr)
 library(grid)
 library(gridExtra)
 
-shotlog <- read.csv("~/11. Coursework/1. Data Science Specialization/9. Developing Data Products/4. Submission/NBA Shot Log Analyzer/Data/shot_logs.csv")
+shotlog <- read.csv("data/shot_logs.csv")
 
 
 shinyServer(function(input, output) {
@@ -18,12 +18,12 @@ shinyServer(function(input, output) {
   output$shotchart1 <- renderPlot({
     # generate data
           shotmvm <- shotlog %>%
-                  group_by(player_name, SHOT_RESULT, LOCATION) %>%
+                  group_by(player_name,LOCATION,SHOT_RESULT) %>%
                   summarize(countmm = n()) %>%
                   mutate(prop = countmm/sum(countmm))%>%
                   filter(player_name == input$player)
           shotmvm <- as.data.frame(shotmvm)
-          colnames(shotmvm) <- c("Player", "Shot_Result","Location","Shot_Count","Shot_Pct")
+          colnames(shotmvm) <- c("Player","Location", "Shot_Result","Shot_Count","Shot_Pct")
           shotmvm$Location <- with(shotmvm, factor(Location, levels = rev(levels(Location))))
          
           
@@ -39,12 +39,12 @@ shinyServer(function(input, output) {
   output$shotchart2 <- renderPlot({
           # generate data
           shotmvmw <- shotlog %>%
-                  group_by(player_name, SHOT_RESULT, W) %>%
+                  group_by(player_name, W, SHOT_RESULT) %>%
                   summarize(countmm = n()) %>%
                   mutate(prop = countmm/sum(countmm))%>%
                   filter(player_name == input$player)
           shotmvmw <- as.data.frame(shotmvmw)
-          colnames(shotmvmw) <- c("Player", "Shot_Result","WL","Shot_Count","Shot_Pct")
+          colnames(shotmvmw) <- c("Player","WL", "Shot_Result", "Shot_Count","Shot_Pct")
           shotmvmw$WL <- with(shotmvmw, factor(WL, levels = rev(levels(WL))))
           
           
